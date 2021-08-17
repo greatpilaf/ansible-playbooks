@@ -1,0 +1,113 @@
+---
+
+- name: Get BASIC info about debian servers
+  hosts: "{{ target }}"
+  tasks:
+    - name: Get FQDN
+      shell: hostname -f
+      register: hostname_os
+
+    - name: Get DOMAIN
+      shell: hostname -d
+      register: hostname_domain      
+
+    - name: Get uptime
+      shell: uptime -p
+      register: get_uptime   
+
+
+    - name: Get VERSION
+      shell: cat /etc/debian_version
+      register: os_version      
+
+    - name: Check Home Space
+      shell: df /home --output\=pcent | tail -1 | tr -dc '0-9'
+      register: home_freespace
+
+    - name: Failed when /home has no 20% FREE
+      fail:
+        msg: WARNING!!! Home Partition has no expected free space
+      when: home_freespace.stdout|float is gt 80
+      ignore_errors: yes
+
+    - name: Check Root Space
+      shell: df / --output\=pcent | tail -1 | tr -dc '0-9'
+      register: root_freespace
+
+    - name: Failed when / has no 20% FREE
+      fail:
+        msg: WARNING!!! Root Partition has no expected free space
+      when: root_freespace.stdout|float is gt 80
+      ignore_errors: yes
+
+    - name: Check Tmp Space
+      shell: df /tmp --output\=pcent | tail -1 | tr -dc '0-9'
+      register: tmp_freespace
+
+    - name: Failed when /tmp has no 20% FREE
+      fail:
+        msg: WARNING!!! TMP Partition has no expected free space
+      when: tmp_freespace.stdout|float is gt 80
+      ignore_errors: yes    
+
+    - name: Check srv Space
+      shell: df /srv --output\=pcent | tail -1 | tr -dc '0-9'
+      register: srv_freespace
+
+    - name: Failed when /srv has no 20% FREE
+      fail:
+        msg: WARNING!!! SRV Partition has no expected free space
+      when: srv_freespace.stdout|float is gt 80
+      ignore_errors: yes          
+
+    - name: Check var Space
+      shell: df /var --output\=pcent | tail -1 | tr -dc '0-9'
+      register: var_freespace
+
+    - name: Failed when /var has no 20% FREE
+      fail:
+        msg: WARNING!!! VAR Partition has no expected free space
+      when: var_freespace.stdout|float is gt 80
+      ignore_errors: yes       
+
+    - name: Check Total RAM
+      shell: free -g | tail -2 | head -1 | while read mem total used free;do echo $total;done
+      register: total_ram   
+
+    - name: Check Used RAM
+      shell: free -g | tail -2 | head -1 | while read mem total used free;do echo $used;done
+      register: used_ram    
+
+    - name: Check MS to gateway
+      shell: ping -c 1 {{ ansible_default_ipv4.gateway }} | head -2 | tail -1 | while read abytes bytes from ip icmp_seq ttl time;do echo $time;done | cut -d'=' -f 2
+      register: ms_to_gateway    
+
+    - name: Check open ports
+      shell: netstat -4nlp | grep -e tcp -e udp | while read proto rec send localadd remoteadd state;do echo $localadd;done | cut -d':' -f 2 | sort -n | uniq | tr '\n' '-'
+      register: open_ports            
+
+    - name: Arquitecture
+      become: yes
+      shell: sudo dmidecode -s system-manufacturer
+      register: system_manufacturer  
+
+
+    - name: Print Log
+      debug:
+        msg:
+          - SERVER FQDN = {{ hostname_os.stdout }}
+          - System Manufacturer = {{ system_manufacturer.stdout }}
+          - DOMAIN = {{ hostname_domain.stdout }}
+          - DEFAULT IP ADDRESS = {{ ansible_default_ipv4.address }}
+          - DEFAULT GATEWAY = {{ ansible_default_ipv4.gateway }}
+          - OS VERSION = {{ os_version.stdout }}
+          - HOME % FREE SPACE = {{ home_freespace.stdout }}%
+          - ROOT % FREE SPACE = {{ root_freespace.stdout }}%
+          - SRV % FREE SPACE = {{ srv_freespace.stdout }}%
+          - VAR % FREE SPACE = {{ var_freespace.stdout }}%
+          - TMP % FREE SPACE = {{ tmp_freespace.stdout }}%
+          - Server Uptime = {{ get_uptime.stdout }}
+          - Total RAM = {{ total_ram.stdout }}GB
+          - Used RAM = {{ used_ram.stdout }}GB
+          - Miliseconds to gateway = {{ ms_to_gateway.stdout }}
+          - Listening Ports = {{ open_ports.stdout }}
