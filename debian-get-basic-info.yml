@@ -83,7 +83,8 @@
       register: ms_to_gateway    
 
     - name: Check open ports
-      shell: netstat -4nlp | grep -e tcp -e udp | while read proto rec send localadd remoteadd state;do echo $localadd;done | cut -d':' -f 2 | sort -n | uniq | tr '\n' '-'
+      become: yes
+      shell: sudo netstat -4nlp | grep -e tcp -e udp | grep LISTEN | while read proto rec send localadd remoteadd state daemon;do echo Service:. `echo $daemon | cut -d'/' -f 2` $localadd;done
       register: open_ports            
 
     - name: Arquitecture
@@ -111,3 +112,16 @@
           - Used RAM = {{ used_ram.stdout }}GB
           - Miliseconds to gateway = {{ ms_to_gateway.stdout }}
           - Listening Ports = {{ open_ports.stdout }}
+
+    - name: Create Report Spanish (1/3)
+      when: lang == "español"
+      shell: echo "Resumen para {{ hostname_os.stdout }}\n\nServidor:.{{ system_manufacturer.stdout }}\nDominio:.{{ hostname_domain.stdout }}\nIP:.{{ ansible_default_ipv4.address }}\nGateway:.{{ ansible_default_ipv4.gateway }}\nVersion de OS:. Debian {{ os_version.stdout }}\n\n" > ~/{{hostname_os.stdout}}.info.log
+
+    - name: Create Report Spanish (2/3)
+      when: lang == "español"
+      shell: echo "ms al Gateway:\t{{ ms_to_gateway.stdout }}\nRAM Total:\t{{ total_ram.stdout }}GB\nRam Usada:\t{{ used_ram.stdout }}GB\n\nResumen de espacio en particiones:.\n/HOME/\t{{ home_freespace.stdout }}%\tutilizado.\n/ROOT/\t{{ root_freespace.stdout }}%\tutilizado.\n/SRV/\t{{ srv_freespace.stdout }}%\tutilizado.\n/VAR/\t{{ var_freespace.stdout }}%\tutilizado.\n/TMP/\t{{ tmp_freespace.stdout }}%\tutilizado.\n" >> ~/{{hostname_os.stdout}}.info.log
+
+    - name: Create Report Spanish (3/3)
+      when: lang == "español"
+      shell: echo "Servicios corriendo:\n{{ open_ports.stdout }}\n\nUptime Server:. {{ get_uptime.stdout }}" >> ~/{{hostname_os.stdout}}.info.log          
+          
