@@ -92,16 +92,42 @@
       shell: sudo dmidecode -s system-manufacturer
       register: system_manufacturer  
 
+    - name: Service TAG
+      become: yes
+      shell: sudo dmidecode -s system-serial-number
+      register: system_serial  
+
+    - name: Get number of disks
+      shell: lsblk -S | sed -n '1!p' | grep disk | wc -l
+      register: number_of_disk 
+
+    - name: Get disks names
+      shell: lsblk -S | sed -n '1!p' | grep disk | while read name all;do echo $name;done | tr '\n' ','
+      register: disks_names       
+
+    - name: Get fail2ban total banned
+      become: yes
+      shell: sudo fail2ban-client status sshd | grep "Total banned:" | tr -dc '0-9'
+      register: fail2ban_total_banned       
+
+    - name: Get fail2ban current banned
+      become: yes
+      shell: sudo fail2ban-client status sshd | grep "Currently banned:" | tr -dc '0-9'
+      register: fail2ban_current_banned        
+
 
     - name: Print Log
       debug:
         msg:
           - SERVER FQDN = {{ hostname_os.stdout }}
+          - Service TAG = {{ system_serial.stdout }}
           - System Manufacturer = {{ system_manufacturer.stdout }}
           - DOMAIN = {{ hostname_domain.stdout }}
           - DEFAULT IP ADDRESS = {{ ansible_default_ipv4.address }}
           - DEFAULT GATEWAY = {{ ansible_default_ipv4.gateway }}
           - OS VERSION = {{ os_version.stdout }}
+          - Number of Physical Disks = {{ number_of_disk.stdout }}
+          - DISKS = {{ disks_names.stdout }}
           - HOME % FREE SPACE = {{ home_freespace.stdout }}%
           - ROOT % FREE SPACE = {{ root_freespace.stdout }}%
           - SRV % FREE SPACE = {{ srv_freespace.stdout }}%
@@ -112,16 +138,18 @@
           - Used RAM = {{ used_ram.stdout }}GB
           - Miliseconds to gateway = {{ ms_to_gateway.stdout }}
           - Listening Ports = {{ open_ports.stdout }}
+          - The Server has banned = {{ fail2ban_total_banned.stdout }} IPs
+          - Actual IPs banned =  {{ fail2ban_current_banned.stdout }}
 
     - name: Create Report Spanish (1/3)
       when: lang == "español"
-      shell: echo "Resumen para {{ hostname_os.stdout }}\n\nServidor:.{{ system_manufacturer.stdout }}\nDominio:.{{ hostname_domain.stdout }}\nIP:.{{ ansible_default_ipv4.address }}\nGateway:.{{ ansible_default_ipv4.gateway }}\nVersion de OS:. Debian {{ os_version.stdout }}\n\n" > ~/{{hostname_os.stdout}}.info.log
+      shell: echo "Resumen para {{ hostname_os.stdout }}\n\nServidor:.{{ system_manufacturer.stdout }}\nService Tag:.{{system_serial.stdout}}\nDominio:.{{ hostname_domain.stdout }}\nIP:.{{ ansible_default_ipv4.address }}\nGateway:.{{ ansible_default_ipv4.gateway }}\nVersion de OS:. Debian {{ os_version.stdout }}\n\n" > ~/{{hostname_os.stdout}}.info.log
 
     - name: Create Report Spanish (2/3)
       when: lang == "español"
-      shell: echo "ms al Gateway:\t{{ ms_to_gateway.stdout }}\nRAM Total:\t{{ total_ram.stdout }}GB\nRam Usada:\t{{ used_ram.stdout }}GB\n\nResumen de espacio en particiones:.\n/HOME/\t{{ home_freespace.stdout }}%\tutilizado.\n/ROOT/\t{{ root_freespace.stdout }}%\tutilizado.\n/SRV/\t{{ srv_freespace.stdout }}%\tutilizado.\n/VAR/\t{{ var_freespace.stdout }}%\tutilizado.\n/TMP/\t{{ tmp_freespace.stdout }}%\tutilizado.\n" >> ~/{{hostname_os.stdout}}.info.log
+      shell: echo "ms al Gateway:\t{{ ms_to_gateway.stdout }}\nRAM Total:\t{{ total_ram.stdout }}GB\nRam Usada:\t{{ used_ram.stdout }}GB\n\nCantidad de Discos fisicos:{{number_of_disk.stdout}}\nDiscos:{{disks_names.stdout}}\n\nResumen de espacio en particiones:.\n/HOME/\t{{ home_freespace.stdout }}%\tutilizado.\n/ROOT/\t{{ root_freespace.stdout }}%\tutilizado.\n/SRV/\t{{ srv_freespace.stdout }}%\tutilizado.\n/VAR/\t{{ var_freespace.stdout }}%\tutilizado.\n/TMP/\t{{ tmp_freespace.stdout }}%\tutilizado.\n" >> ~/{{hostname_os.stdout}}.info.log
 
     - name: Create Report Spanish (3/3)
       when: lang == "español"
-      shell: echo "Servicios corriendo:\n{{ open_ports.stdout }}\n\nUptime Server:. {{ get_uptime.stdout }}" >> ~/{{hostname_os.stdout}}.info.log          
+      shell: echo "El servidor ha baneado un total de:{{ fail2ban_total_banned.stdout }} IPs\nDe las cuales se encuentran baneadas:{{ fail2ban_current_banned.stdout }}\n\nServicios corriendo:\n{{ open_ports.stdout }}\n\nUptime Server:. {{ get_uptime.stdout }}" >> ~/{{hostname_os.stdout}}.info.log          
           
