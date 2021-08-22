@@ -39,4 +39,6 @@ What kind of information can you have with this playbook?
 ansible-playbook linux-report.yml -e target=my_group -K -e lang=[español-english]
 ```
 
+After execute the playbook you can find the report on /tmp/domain/ on your ansible "server"
+
 
