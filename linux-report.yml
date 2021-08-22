@@ -164,50 +164,51 @@
       register: fail2ban_current_banned
       when: package_check_fail2ban_Debian is succeeded or package_check_fail2ban_RH is succeeded
 
-    - name: 34. Print Header Log Debian
-      debug:
-        msg:   
-          - SERVER FQDN = {{ hostname_os.stdout }}
-          - OS Family = {{ansible_facts['os_family']}}
-          - OS Version = {{ os_version_Debian.stdout }}
-      when: ansible_facts['os_family'] == "Debian"
+    ## Uncomment if you want print log in screen, remember that all log will be stored in /tmp/
+    # - name: 34. Print Header Log Debian
+    #   debug:
+    #     msg:   
+    #       - SERVER FQDN = {{ hostname_os.stdout }}
+    #       - OS Family = {{ansible_facts['os_family']}}
+    #       - OS Version = {{ os_version_Debian.stdout }}
+    #   when: ansible_facts['os_family'] == "Debian"
 
-    - name: 35. Print Header Log RedHat
-      debug:
-        msg:   
-          - SERVER FQDN = {{ hostname_os.stdout }}
-          - OS Family = {{ansible_facts['os_family']}}
-          - OS Family = {{ os_version_RH.stdout }}
-      when: ansible_facts['os_family'] == "RedHat"
+    # - name: 35. Print Header Log RedHat
+    #   debug:
+    #     msg:   
+    #       - SERVER FQDN = {{ hostname_os.stdout }}
+    #       - OS Family = {{ansible_facts['os_family']}}
+    #       - OS Family = {{ os_version_RH.stdout }}
+    #   when: ansible_facts['os_family'] == "RedHat"
 
-    - name: 36. Print Log
-      vars:
-        msg1: |
-          Service TAG: {{ system_serial.stdout }}
-          System Manufacturer: {{ system_manufacturer.stdout }}
-          DOMAIN: {{ hostname_domain.stdout }}
-          DEFAULT IP ADDRESS: {{ ansible_default_ipv4.address }}
-          DEFAULT GATEWAY: {{ ansible_default_ipv4.gateway }}
-          HOME % FREE SPACE: {{ home_freespace.stdout }}%
-          ROOT % FREE SPACE: {{ root_freespace.stdout }}%
-          SRV % FREE SPACE: {{ srv_freespace.stdout }}%
-          VAR % FREE SPACE: {{ var_freespace.stdout }}%
-          TMP % FREE SPACE: {{ tmp_freespace.stdout }}%
-          Server Uptime: {{ get_uptime.stdout }}
-          Total RAM: {{ total_ram.stdout }}GB
-          Used RAM: {{ used_ram.stdout }}GB
-          Miliseconds to gateway: {{ ms_to_gateway.stdout }}
+    # - name: 36. Print Log
+    #   vars:
+    #     msg1: |
+    #       Service TAG: {{ system_serial.stdout }}
+    #       System Manufacturer: {{ system_manufacturer.stdout }}
+    #       DOMAIN: {{ hostname_domain.stdout }}
+    #       DEFAULT IP ADDRESS: {{ ansible_default_ipv4.address }}
+    #       DEFAULT GATEWAY: {{ ansible_default_ipv4.gateway }}
+    #       HOME % FREE SPACE: {{ home_freespace.stdout }}%
+    #       ROOT % FREE SPACE: {{ root_freespace.stdout }}%
+    #       SRV % FREE SPACE: {{ srv_freespace.stdout }}%
+    #       VAR % FREE SPACE: {{ var_freespace.stdout }}%
+    #       TMP % FREE SPACE: {{ tmp_freespace.stdout }}%
+    #       Server Uptime: {{ get_uptime.stdout }}
+    #       Total RAM: {{ total_ram.stdout }}GB
+    #       Used RAM: {{ used_ram.stdout }}GB
+    #       Miliseconds to gateway: {{ ms_to_gateway.stdout }}
 
-          Listening Ports:
-          {{ open_ports.stdout }}
+    #       Listening Ports:
+    #       {{ open_ports.stdout }}
 
-          The Server has banned: {{ fail2ban_total_banned.stdout }} IPs
-          Actual IPs banned:  {{ fail2ban_current_banned.stdout }}
+    #       The Server has banned: {{ fail2ban_total_banned.stdout }} IPs
+    #       Actual IPs banned:  {{ fail2ban_current_banned.stdout }}
 
 
-          Disks Summary: {{ disk_summary.stdout }}
-      debug:
-        msg: "{{ msg1.split('\n') }}"
+    #       Disks Summary: {{ disk_summary.stdout }}
+    #   debug:
+    #     msg: "{{ msg1.split('\n') }}"
 
     - name: 37. Create Header Report Spanish Debian
       when: lang is defined and lang == "español" and ansible_facts['os_family'] == "Debian"
@@ -227,7 +228,7 @@
         EOF        
 
     - name: 39. Create Body Report Spanish
-      when: lang is defined and lang == "español" and ansible_facts['os_family'] == "Debian"
+      when: lang is defined and lang == "español"
       shell: |
         cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
         Dominio: {{ hostname_domain.stdout }}
@@ -239,29 +240,50 @@
 
         Resumen de espacios: 
 
-        HOME % ESPACIO UTILIZADO: {{ home_freespace.stdout }}%
-        ROOT % ESPACIO UTILIZADO: {{ root_freespace.stdout }}%
-        SRV % ESPACIO UTILIZADO: {{ srv_freespace.stdout }}%
-        VAR % ESPACIO UTILIZADO: {{ var_freespace.stdout }}%
-        TMP % ESPACIO UTILIZADO: {{ tmp_freespace.stdout }}%
+        HOME  % ESPACIO UTILIZADO:    {{ home_freespace.stdout }}%
+        ROOT  % ESPACIO UTILIZADO:    {{ root_freespace.stdout }}%
+        SRV   % ESPACIO UTILIZADO:    {{ srv_freespace.stdout }}%
+        VAR   % ESPACIO UTILIZADO:    {{ var_freespace.stdout }}%
+        TMP   % ESPACIO UTILIZADO:    {{ tmp_freespace.stdout }}%
 
-        Otros Datos:
-
-        Resumen para Fail2Ban:
-
-        El servidor ha baneado un total de:{{ fail2ban_total_banned.stdout }} IPs
-        De las cuales se encuentran baneadas:{{ fail2ban_current_banned.stdout }}
-
+        
         Servidor Uptime: {{ get_uptime.stdout }}
         RAM Total: {{ total_ram.stdout }}GB
         RAM utilizada: {{ used_ram.stdout }}GB
         Milisegundos al gateway: {{ ms_to_gateway.stdout }}
+        
+        EOF
 
+    - name: 39. Create Body Report Spanish Dependencies Fail2ban
+      when: lang is defined and lang == "español" and fail2ban_total_banned is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        
+        Otros Datos:
+        Resumen para Fail2Ban:
+        El servidor ha baneado un total de:{{ fail2ban_total_banned.stdout }} IPs
+        De las cuales se encuentran baneadas:{{ fail2ban_current_banned.stdout }}
+        
+        EOF
+
+    - name: 39. Create Body Report Spanish Dependencies Net-tools
+      when: lang is defined and lang == "español" and open_ports is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        
+        Otros Datos:
         Servicios de red escuchando:
-
         {{ open_ports.stdout }}
+        
+        EOF
 
+    - name: 39. Create Body Report Spanish Dependencies S.M.A.R.T
+      when: lang is defined and lang == "español" and disk_summary is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        
+        Otros Datos:
         Resumen de dispositivos de almacenamiento:
-
         {{disk_summary.stdout}}
-        EOF  
+        
+        EOF
