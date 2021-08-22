@@ -210,6 +210,7 @@
     #   debug:
     #     msg: "{{ msg1.split('\n') }}"
 
+    # Spanish Report
     - name: 37. Create Header Report Spanish Debian
       when: lang is defined and lang == "español" and ansible_facts['os_family'] == "Debian"
       shell: |
@@ -239,7 +240,6 @@
         System Manufacturer: {{ system_manufacturer.stdout }}
 
         Resumen de espacios: 
-
         HOME  % ESPACIO UTILIZADO:    {{ home_freespace.stdout }}%
         ROOT  % ESPACIO UTILIZADO:    {{ root_freespace.stdout }}%
         SRV   % ESPACIO UTILIZADO:    {{ srv_freespace.stdout }}%
@@ -254,7 +254,7 @@
         
         EOF
 
-    - name: 39. Create Body Report Spanish Dependencies Fail2ban
+    - name: 40. Create Body Report Spanish Dependencies Fail2ban
       when: lang is defined and lang == "español" and fail2ban_total_banned is succeeded
       shell: |
         cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
@@ -266,7 +266,7 @@
         
         EOF
 
-    - name: 39. Create Body Report Spanish Dependencies Net-tools
+    - name: 41. Create Body Report Spanish Dependencies Net-tools
       when: lang is defined and lang == "español" and open_ports is succeeded
       shell: |
         cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
@@ -277,7 +277,7 @@
         
         EOF
 
-    - name: 39. Create Body Report Spanish Dependencies S.M.A.R.T
+    - name: 42. Create Body Report Spanish Dependencies S.M.A.R.T
       when: lang is defined and lang == "español" and disk_summary is succeeded
       shell: |
         cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
@@ -287,3 +287,85 @@
         {{disk_summary.stdout}}
         
         EOF
+
+    # English Report
+    - name: 43. Create Header Report english Debian
+      when: lang is defined and lang == "english" and ansible_facts['os_family'] == "Debian"
+      shell: |
+        cat << EOF > /tmp/{{ hostname_os.stdout }}.report
+        Summary for {{ hostname_os.stdout }}
+        OS: {{ansible_facts['os_family']}} {{ os_version_Debian.stdout }}
+
+        EOF
+
+    - name: 44. Create Header Report english RedHat
+      when: lang is defined and lang == "english" and ansible_facts['os_family'] == "RedHat"
+      shell: |
+        cat << EOF > /tmp/{{ hostname_os.stdout }}.report
+        Summary for {{ hostname_os.stdout }}
+        OS: {{ansible_facts['os_family']}} {{ os_version_RH.stdout }}
+        EOF        
+
+    - name: 45. Create Body english Spanish
+      when: lang is defined and lang == "english"
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        Domain: {{ hostname_domain.stdout }}
+        IP: {{ ansible_default_ipv4.address }}
+        Gateway: {{ ansible_default_ipv4.gateway }}        
+
+        Service TAG: {{ system_serial.stdout }}
+        System Manufacturer: {{ system_manufacturer.stdout }}
+
+        Spaces Summary:
+        HOME  % Used space:    {{ home_freespace.stdout }}%
+        ROOT  % Used space:    {{ root_freespace.stdout }}%
+        SRV   % Used space:    {{ srv_freespace.stdout }}%
+        VAR   % Used space:    {{ var_freespace.stdout }}%
+        TMP   % Used space:    {{ tmp_freespace.stdout }}%
+
+        
+        Server Uptime: {{ get_uptime.stdout }}
+        RAM Total: {{ total_ram.stdout }}GB
+        RAM used: {{ used_ram.stdout }}GB
+        Ms to gateway: {{ ms_to_gateway.stdout }}
+        
+        EOF
+
+    - name: 46. Create Body Report english Dependencies Fail2ban
+      when: lang is defined and lang == "english" and fail2ban_total_banned is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        
+        Other info:
+        summary for Fail2Ban:
+        Total banned IPs:{{ fail2ban_total_banned.stdout }}
+        currently banned IPs:{{ fail2ban_current_banned.stdout }}
+        
+        EOF
+
+    - name: 47. Create Body Report english Dependencies Net-tools
+      when: lang is defined and lang == "english" and open_ports is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        
+        Other info:
+        Nwtwork Services Listening:
+        {{ open_ports.stdout }}
+        
+        EOF
+
+    - name: 48. Create Body Report english Dependencies S.M.A.R.T
+      when: lang is defined and lang == "english" and disk_summary is succeeded
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+
+        Other info:
+        Storage Devices Summary:
+        {{disk_summary.stdout}}
+        EOF
+
+    - name: 48. Copy repot to /tmp/hostname/ to ansible server
+      ansible.builtin.fetch:
+        src: /tmp/{{ hostname_os.stdout }}.report
+        dest: /tmp/{{ hostname_domain.stdout }}.report.txt

@@ -4,6 +4,7 @@ Deploy SysAdmin Tasks
 ## Execute task
 
 To deploy ansible playbooks you need to have groups of hosts in your /etc/ansible/hosts and the pass a target parameter with the group name.
+
 Examples:
 
 ```bash
