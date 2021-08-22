@@ -9,3 +9,5 @@ Examples:
 ```bash
 ansible-playbook [./ansible-playbooks/debian-get-basic-info.yml] -e target=my_group
 ```
+
+### Linux-get-basic-info.yml Execution

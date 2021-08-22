@@ -1,0 +1,267 @@
+---
+
+- name: Get BASIC info about debian servers
+  hosts: "{{ target }}"
+
+  tasks:
+    - name: 1. Get FQDN
+      shell: hostname -f
+      register: hostname_os
+
+    - name: 2. Get DOMAIN
+      shell: hostname -d
+      register: hostname_domain      
+
+    - name: 3. Get uptime
+      shell: uptime -p
+      register: get_uptime   
+
+    - name: 4. Get Debian VERSION
+      shell: cat /etc/debian_version
+      register: os_version_Debian
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 5. Get RedHat VERSION
+      shell: cat /etc/redhat-release
+      register: os_version_RH   
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 6. Check Home Space
+      shell: df /home --output\=pcent | tail -1 | tr -dc '0-9'
+      register: home_freespace
+
+    - name: 7. Failed when /home has no 20% FREE
+      fail:
+        msg: WARNING!!! Home Partition has no expected free space
+      when: home_freespace.stdout|float is gt 80
+      ignore_errors: yes
+
+    - name: 8. Check Root Space
+      shell: df / --output\=pcent | tail -1 | tr -dc '0-9'
+      register: root_freespace
+
+    - name: 9. Failed when / has no 20% FREE
+      fail:
+        msg: WARNING!!! Root Partition has no expected free space
+      when: root_freespace.stdout|float is gt 80
+      ignore_errors: yes
+
+    - name: 10. Check Tmp Space
+      shell: df /tmp --output\=pcent | tail -1 | tr -dc '0-9'
+      register: tmp_freespace
+
+    - name: 11. Failed when /tmp has no 20% FREE
+      fail:
+        msg: WARNING!!! TMP Partition has no expected free space
+      when: tmp_freespace.stdout|float is gt 80
+      ignore_errors: yes    
+
+    - name: 12. Check SRV Space
+      shell: df /srv --output\=pcent | tail -1 | tr -dc '0-9'
+      register: srv_freespace
+
+    - name: 13. Failed when /srv has no 20% FREE
+      fail:
+        msg: WARNING!!! SRV Partition has no expected free space
+      when: srv_freespace.stdout|float is gt 80
+      ignore_errors: yes          
+
+    - name: 14. Check VAR Space
+      shell: df /var --output\=pcent | tail -1 | tr -dc '0-9'
+      register: var_freespace
+
+    - name: 15. Failed when /var has no 20% FREE
+      fail:
+        msg: WARNING!!! VAR Partition has no expected free space
+      when: var_freespace.stdout|float is gt 80
+      ignore_errors: yes       
+
+    - name: 16. Check Total RAM
+      shell: free -g | tail -2 | head -1 | while read mem total used free;do echo $total;done
+      register: total_ram   
+
+    - name: 17. Check Used RAM
+      shell: free -g | tail -2 | head -1 | while read mem total used free;do echo $used;done
+      register: used_ram    
+
+    - name: 18. Check time to gateway
+      shell: ping -c 1 {{ ansible_default_ipv4.gateway }} | head -2 | tail -1 | while read abytes bytes from ip icmp_seq ttl time;do echo $time;done | cut -d'=' -f 2
+      register: ms_to_gateway    
+
+    - name: 19. Check if net-tools is installed on Debian
+      command: dpkg-query -l net-tools
+      register: package_check_Debian
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 20. Check if net-tools is installed on RedHat
+      command: rpm -q net-tools
+      register: package_check_RH
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 21. Check open ports
+      shell: netstat -4nlp | grep -e tcp -e udp | grep LISTEN | while read proto rec send localadd remoteadd state daemon;do echo Service:`echo $daemon | cut -d'/' -f 2` $localadd;done
+      register: open_ports
+      become: yes
+      when: package_check_Debian is succeeded or package_check_RH is succeeded
+
+    - name: 22. Check if dmidecode is installed on Debian
+      command: dpkg-query -l dmidecode
+      register: package_check_dmidecode_Debian
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 23. Check if dmidecode is installed on RedHat
+      command: rpm -q dmidecode
+      register: package_check_dmidecode_RH
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 24. Arquitecture
+      become: yes
+      shell: dmidecode -s system-manufacturer
+      register: system_manufacturer
+      when: package_check_dmidecode_Debian is succeeded or package_check_dmidecode_RH is succeeded
+
+    - name: 25. Service TAG
+      become: yes
+      shell: dmidecode -s system-serial-number
+      register: system_serial
+      when: package_check_dmidecode_Debian is succeeded or package_check_dmidecode_RH is succeeded
+
+    - name: 26. Check if smartmontools is installed on Debian
+      command: dpkg-query -l smartmontools
+      register: package_check_smartmontools_Debian
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 27. Check if smartmontools is installed on RedHat
+      command: rpm -q smartmontools
+      register: package_check_smartmontools_RH
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 28. Disks and controller summary
+      become: yes
+      when: package_check_smartmontools_Debian is succeeded or package_check_smartmontools_RH is succeeded
+      shell: smartctl --scan | while read disk;do echo "========0========";echo $disk | while read device parameter type others;do smartctl -a $device -d $type | grep -e "Product:" -e "Vendor:" -e 'Model Family' -e 'Device Model' -e 'Serial Number' -e 'Rotation Rate' -e 'Form Factor:' -e 'Temperature:' -e 'power on time' ;smartctl -H $device -d $type | grep -e "SMART Health Status:" -e "test result:";done;done
+      register: disk_summary
+
+    - name: 30. Check if fail2ban is installed on Debian
+      command: dpkg-query -l fail2ban
+      register: package_check_fail2ban_Debian
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 31. Check if fail2ban is installed on RedHat
+      command: rpm -q fail2ban
+      register: package_check_fail2ban_RH
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 32. Get fail2ban total banned
+      become: yes
+      shell: fail2ban-client status sshd | grep "Total banned:" | tr -dc '0-9'
+      register: fail2ban_total_banned
+      when: package_check_fail2ban_Debian is succeeded or package_check_fail2ban_RH is succeeded
+
+    - name: 33. Get fail2ban current banned
+      become: yes
+      shell: fail2ban-client status sshd | grep "Currently banned:" | tr -dc '0-9'
+      register: fail2ban_current_banned
+      when: package_check_fail2ban_Debian is succeeded or package_check_fail2ban_RH is succeeded
+
+    - name: 34. Print Header Log Debian
+      debug:
+        msg:   
+          - SERVER FQDN = {{ hostname_os.stdout }}
+          - OS Family = {{ansible_facts['os_family']}}
+          - OS Version = {{ os_version_Debian.stdout }}
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: 35. Print Header Log RedHat
+      debug:
+        msg:   
+          - SERVER FQDN = {{ hostname_os.stdout }}
+          - OS Family = {{ansible_facts['os_family']}}
+          - OS Family = {{ os_version_RH.stdout }}
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: 36. Print Log
+      vars:
+        msg1: |
+          Service TAG: {{ system_serial.stdout }}
+          System Manufacturer: {{ system_manufacturer.stdout }}
+          DOMAIN: {{ hostname_domain.stdout }}
+          DEFAULT IP ADDRESS: {{ ansible_default_ipv4.address }}
+          DEFAULT GATEWAY: {{ ansible_default_ipv4.gateway }}
+          HOME % FREE SPACE: {{ home_freespace.stdout }}%
+          ROOT % FREE SPACE: {{ root_freespace.stdout }}%
+          SRV % FREE SPACE: {{ srv_freespace.stdout }}%
+          VAR % FREE SPACE: {{ var_freespace.stdout }}%
+          TMP % FREE SPACE: {{ tmp_freespace.stdout }}%
+          Server Uptime: {{ get_uptime.stdout }}
+          Total RAM: {{ total_ram.stdout }}GB
+          Used RAM: {{ used_ram.stdout }}GB
+          Miliseconds to gateway: {{ ms_to_gateway.stdout }}
+
+          Listening Ports:
+          {{ open_ports.stdout }}
+
+          The Server has banned: {{ fail2ban_total_banned.stdout }} IPs
+          Actual IPs banned:  {{ fail2ban_current_banned.stdout }}
+
+
+          Disks Summary: {{ disk_summary.stdout }}
+      debug:
+        msg: "{{ msg1.split('\n') }}"
+
+    - name: 37. Create Header Report Spanish Debian
+      when: lang is defined and lang == "español" and ansible_facts['os_family'] == "Debian"
+      shell: |
+        cat << EOF > /tmp/{{ hostname_os.stdout }}.report
+        Resumen para {{ hostname_os.stdout }}
+        OS: {{ansible_facts['os_family']}} {{ os_version_Debian.stdout }}
+
+        EOF
+
+    - name: 38. Create Header Report Spanish RedHat
+      when: lang is defined and lang == "español" and ansible_facts['os_family'] == "RedHat"
+      shell: |
+        cat << EOF > /tmp/{{ hostname_os.stdout }}.report
+        Resumen para {{ hostname_os.stdout }}
+        OS: {{ansible_facts['os_family']}} {{ os_version_RH.stdout }}
+        EOF        
+
+    - name: 39. Create Body Report Spanish
+      when: lang is defined and lang == "español" and ansible_facts['os_family'] == "Debian"
+      shell: |
+        cat << EOF >> /tmp/{{ hostname_os.stdout }}.report
+        Dominio: {{ hostname_domain.stdout }}
+        IP Principal: {{ ansible_default_ipv4.address }}
+        Puerta de enlace predeterminada: {{ ansible_default_ipv4.gateway }}        
+
+        Service TAG: {{ system_serial.stdout }}
+        System Manufacturer: {{ system_manufacturer.stdout }}
+
+        Resumen de espacios: 
+
+        HOME % ESPACIO UTILIZADO: {{ home_freespace.stdout }}%
+        ROOT % ESPACIO UTILIZADO: {{ root_freespace.stdout }}%
+        SRV % ESPACIO UTILIZADO: {{ srv_freespace.stdout }}%
+        VAR % ESPACIO UTILIZADO: {{ var_freespace.stdout }}%
+        TMP % ESPACIO UTILIZADO: {{ tmp_freespace.stdout }}%
+
+        Otros Datos:
+
+        Resumen para Fail2Ban:
+
+        El servidor ha baneado un total de:{{ fail2ban_total_banned.stdout }} IPs
+        De las cuales se encuentran baneadas:{{ fail2ban_current_banned.stdout }}
+
+        Servidor Uptime: {{ get_uptime.stdout }}
+        RAM Total: {{ total_ram.stdout }}GB
+        RAM utilizada: {{ used_ram.stdout }}GB
+        Milisegundos al gateway: {{ ms_to_gateway.stdout }}
+
+        Servicios de red escuchando:
+
+        {{ open_ports.stdout }}
+
+        Resumen de dispositivos de almacenamiento:
+
+        {{disk_summary.stdout}}
+        EOF  
