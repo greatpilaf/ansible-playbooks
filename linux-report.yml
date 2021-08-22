@@ -376,4 +376,4 @@
     - name: 48. Copy repot to /tmp/hostname/ to ansible server
       ansible.builtin.fetch:
         src: /tmp/{{ hostname_os.stdout }}.report
-        dest: /tmp/{{ hostname_domain.stdout }}.report.txt
+        dest: /tmp/{{ hostname_domain.stdout }}.report
