@@ -5,7 +5,7 @@
 
   tasks:
     - name: 0. Get Last System Upgrade
-      shell: ls -1t /var/log/apt/history.log* | while read log;do if [[ $log == *.gz ]]; then zcat $log;else cat $log; fi;done | grep -A 5 -m 1 upgrade | grep 'End-Date'
+      shell: ls -1t /var/log/apt/history.log* | while read log;do if echo $log == *.gz ; then zcat $log;else cat $log; fi;done | grep -A 5 -m 1 upgrade | grep "End-Date"
       register: last_upgrade
       when: ansible_facts['os_family'] == "Debian"
 
