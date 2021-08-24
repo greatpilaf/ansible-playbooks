@@ -41,4 +41,13 @@ ansible-playbook linux-report.yml -e target=my_group -K -e lang=[español-englis
 
 After execute the playbook you can find the report on /tmp/domain/ on your ansible "server"
 
+### 2. debian-update.yml
+
+This playbook first will update de repositories cache, after will upgrade the packages and finally remove the .deb's files and execute autoremove command
+
+#### How execute
+```bash
+ansible-playbook debian-update.yml -e target=my_group -K
+```
+
 
