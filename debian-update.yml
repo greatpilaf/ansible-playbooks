@@ -1,0 +1,26 @@
+---
+
+- name: Basic update for Debian Servers
+  hosts: "{{ target }}"
+
+  tasks:
+
+    - name: Update repositories cache (apt update)
+      become: yes
+      apt:
+        update_cache: yes
+
+    - name: Upgrading (apt upgrade)
+      become: yes
+      apt:
+        upgrade: 'yes'
+
+    - name: Autoclean (apt autoclean)
+      become: yes
+      apt:
+        autoclean: yes
+
+    - name: Autoremove (apt autoremove)
+      become: yes
+      apt:
+        autoremove: yes        

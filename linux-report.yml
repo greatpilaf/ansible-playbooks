@@ -4,6 +4,11 @@
   hosts: "{{ target }}"
 
   tasks:
+    - name: 0. Get Last System Upgrade
+      shell: ls -1t /var/log/apt/history.log* | while read log;do if [[ $log == *.gz ]]; then zcat $log;else cat $log; fi;done | grep -A 5 -m 1 upgrade | grep 'End-Date'
+      register: last_upgrade
+      when: ansible_facts['os_family'] == "Debian"
+
     - name: 1. Get FQDN
       shell: hostname -f
       register: hostname_os
@@ -225,6 +230,7 @@
         cat << EOF > /tmp/{{ hostname_os.stdout }}.report
         Resumen para {{ hostname_os.stdout }}
         OS: {{ansible_facts['os_family']}} {{ os_version_Debian.stdout }}
+        Ultima actualizacion de Sistema: {{ last_upgrade.stdout }}
 
         EOF
 
@@ -303,7 +309,8 @@
         cat << EOF > /tmp/{{ hostname_os.stdout }}.report
         Summary for {{ hostname_os.stdout }}
         OS: {{ansible_facts['os_family']}} {{ os_version_Debian.stdout }}
-
+        Last System Upgrade: {{ last_upgrade.stdout }}
+        
         EOF
 
     - name: 44. Create Header Report english RedHat
