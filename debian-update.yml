@@ -4,12 +4,21 @@
   hosts: "{{ target }}"
 
   tasks:
+    - name: Check if server has unifi
+      command: dpkg-query -l unifi
+      register: package_check_unifi
+      ignore_errors: yes
 
     - name: Update repositories cache (apt update)
       become: yes
       apt:
         update_cache: yes
 
+    - name: Upgrading (apt upgrade) with unifi
+      become: yes
+      when: package_check_unifi is succeeded
+      shell: echo "unifi unifi/has_backup boolean true" | debconf-set-selections && DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade unifi && service unifi restart
+    
     - name: Upgrading (apt upgrade)
       become: yes
       apt:
@@ -23,4 +32,4 @@
     - name: Autoremove (apt autoremove)
       become: yes
       apt:
-        autoremove: yes        
+        autoremove: yes
