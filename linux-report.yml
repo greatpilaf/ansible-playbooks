@@ -6,7 +6,7 @@
   tasks:
     - name: 0. Get Last System Upgrade
       shell: |
-        ls -1t /var/log/apt/history.log* | while read log;do zcat -f $log;done | grep -A 5 -m 1 upgrade | grep End-Date      
+        ls -1t /var/log/apt/history.log* | while read log;do zcat -f $log;done | grep -A 5 -m 1 upgrade | grep End-Date
       register: last_upgrade
       when: ansible_facts['os_family'] == "Debian"
 
@@ -384,4 +384,4 @@
     - name: 48. Copy repot to /tmp/hostname/ to ansible server
       ansible.builtin.fetch:
         src: /tmp/{{ hostname_os.stdout }}.report
-        dest: /tmp/{{ hostname_domain.stdout }}.report
+        dest: /tmp/ansible/{{ hostname_domain.stdout }}.report
