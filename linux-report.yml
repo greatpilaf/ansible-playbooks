@@ -151,7 +151,7 @@
     - name: 28. Disks and controller summary
       become: yes
       when: package_check_smartmontools_Debian is succeeded or package_check_smartmontools_RH is succeeded
-      shell: smartctl --scan | while read disk;do echo "========0========";echo $disk | while read device parameter type others;do smartctl -a $device -d $type | grep -e "Product:" -e "Vendor:" -e 'Model Family' -e 'Device Model' -e 'Serial Number' -e 'Rotation Rate' -e 'Form Factor:' -e 'Temperature:' -e 'power on time' ;smartctl -H $device -d $type | grep -e "SMART Health Status:" -e "test result:";done;done
+      shell: smartctl --scan | while read disk;do echo "========0========";echo $disk | while read device parameter type others;do smartctl -a $device -d $type | grep -e "Product:" -e "Vendor:" -e 'Model Family' -e 'Device Model' -e 'Serial Number' -e 'Serial number' -e 'Rotation Rate' -e 'Form Factor:' -e 'Temperature:' -e 'power on time' ;smartctl -H $device -d $type | grep -e "SMART Health Status:" -e "test result:";done;done
       register: disk_summary
 
     - name: 30. Check if fail2ban is installed on Debian
